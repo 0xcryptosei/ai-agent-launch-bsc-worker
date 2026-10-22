@@ -1,0 +1,13 @@
+{
+  "name": "@held/worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@held/flap": "*",
+    "viem": "^2.21.54"
+  }
+}
