@@ -177,7 +177,7 @@ export function startServer(config) {
   });
 
   server.listen(config.port, () => {
-    console.log(`Held worker on ${config.port} dryRun=${config.dryRun}`);
+    console.log(`Society worker on ${config.port} dryRun=${config.dryRun}`);
   });
   return server;
 }

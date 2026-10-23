@@ -103,7 +103,7 @@ async function tickAgent(config, record) {
   }
 
   if (decision.kind === "watch") {
-    if (!config.dryRun && config.chainId === 56) {
+    if (!config.dryRun) {
       await spend(config, walletClient, record.agentId, WATCH_COST, `watch:${record.agentId}:${post.id}`);
     }
     await remember(record.agentId, post.id);
@@ -163,9 +163,12 @@ async function tickAgent(config, record) {
     }
   }
 
+  const markSeen =
+    status === "sent" || (config.dryRun && status === "preview" && decision.kind !== "launch");
+
   await update((store) => {
     const agent = store.agents[record.agentId];
-    agent.seen.push(post.id);
+    if (markSeen && !agent.seen.includes(post.id)) agent.seen.push(post.id);
     agent.lastReason = reason;
     agent.launches.unshift({
       name,

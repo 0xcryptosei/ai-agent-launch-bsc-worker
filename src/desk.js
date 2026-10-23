@@ -1,10 +1,11 @@
 import { createPublicClient, createWalletClient, http, parseAbi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { bsc } from "viem/chains";
+import { bsc, bscTestnet } from "viem/chains";
 import { defineChain } from "viem";
 
 export const deskAbi = parseAbi([
   "function agentCount() view returns (uint256)",
+  "function worker() view returns (address)",
   "function getAgent(uint256 agentId) view returns (address owner, address meme, address launchWallet, uint256 credit, uint16 minScore, uint16 maxLaunchesPerDay, uint256 maxBuyWei, bytes32 queryHash, bool active, string name, string symbol, string metaUri)",
   "function spend(uint256 agentId, uint256 amount, bytes32 workId)",
   "event AgentCreated(uint256 indexed agentId, address indexed owner, address meme, string name, string symbol, string metaUri)",
@@ -24,6 +25,7 @@ const local = defineChain({
 
 export function chainFor(chainId) {
   if (chainId === 56) return bsc;
+  if (chainId === 97) return bscTestnet;
   return { ...local, id: chainId };
 }
 
