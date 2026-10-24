@@ -1,12 +1,12 @@
 import { keccak256, stringToBytes, toBytes, zeroAddress } from "viem";
 import {
-  FLAP_PORTAL,
   LAUNCH_COST,
   WATCH_COST,
   decide,
   findVanitySalt,
+  flapFor,
+  launchParams,
   sanitizeSymbol,
-  standardLaunchParams,
 } from "@held/flap";
 import { decryptKey } from "./crypto.js";
 import { clients, deskAbi, portalAbi, asAgent } from "./desk.js";
@@ -110,55 +110,64 @@ async function tickAgent(config, record) {
     return finish(record.agentId, decision.reason);
   }
 
+  const flap = flapFor(config.chainId);
   const name = scored.name;
   const symbol = sanitizeSymbol(scored.symbol);
-  const found = findVanitySalt("8888");
+  const found = findVanitySalt(flap?.vanitySuffix ?? "7777", undefined, flap ?? {});
   let status = "preview";
   let txHash = "";
   let token = found.address;
   let reason = decision.reason ?? "Preview only.";
 
   if (decision.kind === "launch") {
-    const meta = await pinMeta({
-      name,
-      symbol,
-      description: scored.description,
-      image: "",
-    });
-    if (!meta) {
-      reason = "IPFS is not configured, so the Flap transaction was not sent.";
+    if (!flap) {
+      reason = "Flap is not configured for this chain, so the transaction was not sent.";
     } else {
-      const params = standardLaunchParams({
+      const meta = await pinMeta({
         name,
         symbol,
-        meta,
-        salt: found.salt,
-        quoteAmt: decision.quoteAmt,
-        beneficiary: onchain.owner,
+        description: scored.description,
+        image: "",
       });
-      const accountKey = decryptKey(config.secret, record.keyEnc);
-      const sender = clients({ ...config, privateKey: accountKey });
-      if (sender.account.address.toLowerCase() !== onchain.launchWallet.toLowerCase()) {
-        reason = "The stored key does not match the agent launch wallet.";
+      if (!meta) {
+        reason = "IPFS is not configured, so the Flap transaction was not sent.";
       } else {
-        txHash = await sender.walletClient.writeContract({
-          address: FLAP_PORTAL,
-          abi: portalAbi,
-          functionName: "newTokenV6",
-          args: [params],
-          value: decision.quoteAmt,
+        const params = launchParams({
+          name,
+          symbol,
+          meta,
+          salt: found.salt,
+          quoteAmt: decision.quoteAmt,
+          beneficiary: onchain.owner,
         });
-        await sender.publicClient.waitForTransactionReceipt({ hash: txHash });
-        await spend(config, walletClient, record.agentId, WATCH_COST, `watch:${record.agentId}:${post.id}`);
-        await spend(config, walletClient, record.agentId, LAUNCH_COST, `launch:${record.agentId}:${post.id}`);
-        const state = await sender.publicClient.readContract({
-          address: FLAP_PORTAL,
-          abi: portalAbi,
-          functionName: "getTokenV5",
-          args: [token],
-        });
-        reason = `Launched on Flap. Curve reserve ${(state.reserve ?? state[1]).toString()}.`;
-        status = "sent";
+        const accountKey = decryptKey(config.secret, record.keyEnc);
+        const sender = clients({ ...config, privateKey: accountKey });
+        if (sender.account.address.toLowerCase() !== onchain.launchWallet.toLowerCase()) {
+          reason = "The stored key does not match the agent launch wallet.";
+        } else {
+          txHash = await sender.walletClient.writeContract({
+            address: flap.portal,
+            abi: portalAbi,
+            functionName: "newTokenV6",
+            args: [params],
+            value: decision.quoteAmt,
+          });
+          await sender.publicClient.waitForTransactionReceipt({ hash: txHash });
+          await spend(config, walletClient, record.agentId, WATCH_COST, `watch:${record.agentId}:${post.id}`);
+          await spend(config, walletClient, record.agentId, LAUNCH_COST, `launch:${record.agentId}:${post.id}`);
+          try {
+            const state = await sender.publicClient.readContract({
+              address: flap.portal,
+              abi: portalAbi,
+              functionName: "getTokenV5",
+              args: [token],
+            });
+            reason = `Launched on Flap. Curve reserve ${(state.reserve ?? state[1]).toString()}.`;
+          } catch {
+            reason = "Launched on Flap.";
+          }
+          status = "sent";
+        }
       }
     }
   }

@@ -6,7 +6,8 @@
     "dev": "node -r dotenv/config src/index.js",
     "dev:local": "RPC_URL=http://127.0.0.1:8545 CHAIN_ID=31337 DRY_RUN=1 node -r dotenv/config src/index.js",
     "start": "node -r dotenv/config src/index.js",
-    "build": "node --check src/index.js && node --check src/server.js && node --check src/tick.js && node --check src/desk.js && node --check src/store.js && node --check src/crypto.js && node --check src/posts.js"
+    "x:test": "node -r dotenv/config scripts/x-test.js",
+    "build": "node --check src/index.js && node --check src/server.js && node --check src/tick.js && node --check src/desk.js && node --check src/store.js && node --check src/crypto.js && node --check src/posts.js && node --check src/x.js"
   },
   "dependencies": {
     "@held/flap": "*",

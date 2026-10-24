@@ -5,6 +5,7 @@ import { decryptKey, encryptKey, exportToken } from "./crypto.js";
 import { clients, deskAbi, asAgent } from "./desk.js";
 import { update, view } from "./store.js";
 import { tick } from "./tick.js";
+import { testX, xAuth, xLive } from "./x.js";
 
 function send(res, status, body) {
   res.writeHead(status, {
@@ -46,7 +47,19 @@ export function startServer(config) {
         return;
       }
       if (req.method === "GET" && url.pathname === "/api/health") {
-        send(res, 200, { ok: true, dryRun: config.dryRun, chainId: config.chainId });
+        const auth = xAuth();
+        send(res, 200, {
+          ok: true,
+          dryRun: config.dryRun,
+          chainId: config.chainId,
+          x: { configured: auth.configured, live: xLive() },
+        });
+        return;
+      }
+      if (req.method === "POST" && url.pathname === "/api/x/test") {
+        const body = await readBody(req);
+        const result = await testX(String(body.query ?? "meme lang:en -is:retweet"));
+        send(res, result.ok ? 200 : 400, result);
         return;
       }
       if (req.method === "POST" && url.pathname === "/api/agents/prepare") {

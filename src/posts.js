@@ -1,3 +1,5 @@
+import { searchRecent, xLive } from "./x.js";
+
 const SAMPLE = [
   {
     id: "sample-orange",
@@ -6,21 +8,11 @@ const SAMPLE = [
 ];
 
 export async function fetchPosts(query) {
-  const token = process.env.X_BEARER_TOKEN;
-  if (!token) {
+  if (!xLive()) {
     if (process.env.DRY_RUN === "0") return [];
     return SAMPLE.map((post) => ({ ...post, sample: true }));
   }
-
-  const url = new URL("https://api.twitter.com/2/tweets/search/recent");
-  url.searchParams.set("query", query);
-  url.searchParams.set("max_results", "10");
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!response.ok) {
-    throw new Error(`X search failed (${response.status})`);
-  }
-  const body = await response.json();
-  return (body.data ?? []).map((post) => ({ id: post.id, text: post.text, sample: false }));
+  return searchRecent(query);
 }
 
 export async function scorePost(text) {

@@ -20,7 +20,7 @@ async function loadDeployment() {
 
 const deployment = await loadDeployment();
 const chainId = Number(process.env.CHAIN_ID ?? deployment?.chainId ?? 31337);
-// Live on-chain spend (and Flap on BSC via decide()) only when DRY_RUN=0. Default stays dry.
+// Live on-chain spend (and Flap on BSC / BSC Testnet via decide()) only when DRY_RUN=0. Default stays dry.
 const dryRun = process.env.DRY_RUN !== "0";
 const privateKey = process.env.WORKER_PRIVATE_KEY ?? (chainId === 31337 ? LOCAL_WORKER_KEY : "");
 
